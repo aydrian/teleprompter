@@ -65,7 +65,7 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
           if (message.data) {
             updateState({
               lastTranscript: message.data,
-              transcripts: prev => [...prev, message.data],
+              transcripts: (prev: TranscriptData[]) => [...prev, message.data],
               error: null,
             });
           }
@@ -113,7 +113,7 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
       if (autoReconnect && state.reconnectAttempts < maxReconnectAttempts) {
         updateState({
           connectionState: 'reconnecting',
-          reconnectAttempts: prev => prev + 1,
+          reconnectAttempts: (prev: number) => prev + 1,
         });
 
         reconnectTimeoutRef.current = setTimeout(() => {

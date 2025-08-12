@@ -1,109 +1,256 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { useAgentStatus } from "@/hooks/use-agent-status";
-import { Play, Square, RefreshCw } from "lucide-react";
+import { useState } from 'react';
+import { useFetcher } from 'react-router';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Play, 
+  Square, 
+  Mic, 
+  Activity, 
+  AlertCircle, 
+  CheckCircle2,
+  Clock,
+  Users
+} from 'lucide-react';
 
-export function AgentControls() {
-  const {
-    status,
-    isLoading,
-    error,
-    startAgent,
-    stopAgent,
-    refreshStatus,
-  } = useAgentStatus();
+interface AgentStatus {
+  active: boolean;
+  connected: boolean;
+  transcribing: boolean;
+  roomName?: string;
+  participantCount?: number;
+  lastActivity?: number;
+  error?: string;
+}
 
-  const formatTimestamp = (timestamp?: number) => {
-    if (!timestamp) return "Never";
-    return new Date(timestamp).toLocaleTimeString();
+interface AgentControlsProps {
+  roomName: string;
+  participantName: string;
+  isRoomConnected: boolean;
+  className?: string;
+}
+
+export function AgentControls({ 
+  roomName, 
+  participantName, 
+  isRoomConnected,
+  className 
+}: AgentControlsProps) {
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>({
+    active: false,
+    connected: false,
+    transcribing: false,
+  });
+
+  const startFetcher = useFetcher();
+  const stopFetcher = useFetcher();
+  const statusFetcher = useFetcher();
+
+  const isStarting = startFetcher.state === 'submitting';
+  const isStopping = stopFetcher.state === 'submitting';
+  const isLoading = isStarting || isStopping;
+
+  const handleStartAgent = () => {
+    const formData = new FormData();
+    formData.append('roomName', roomName);
+    formData.append('participantName', participantName);
+    
+    startFetcher.submit(formData, {
+      method: 'post',
+      action: '/api/agent/start'
+    });
   };
 
+  const handleStopAgent = () => {
+    const formData = new FormData();
+    formData.append('roomName', roomName);
+    
+    stopFetcher.submit(formData, {
+      method: 'post',
+      action: '/api/agent/stop'
+    });
+  };
+
+  const handleCheckStatus = () => {
+    statusFetcher.load(`/api/agent/status?room=${encodeURIComponent(roomName)}`);
+  };
+
+  const getAgentStatusBadge = () => {
+    if (!agentStatus.connected) {
+      return (
+        <Badge variant="destructive" className="gap-1">
+          <AlertCircle className="h-3 w-3" />
+          Disconnected
+        </Badge>
+      );
+    }
+
+    if (agentStatus.active && agentStatus.transcribing) {
+      return (
+        <Badge variant="default" className="gap-1">
+          <Activity className="h-3 w-3" />
+          Active & Transcribing
+        </Badge>
+      );
+    }
+
+    if (agentStatus.active) {
+      return (
+        <Badge variant="secondary" className="gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Active
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge variant="outline" className="gap-1">
+        <Clock className="h-3 w-3" />
+        Inactive
+      </Badge>
+    );
+  };
+
+  const canStartAgent = isRoomConnected && !agentStatus.active && !isLoading;
+  const canStopAgent = agentStatus.active && !isLoading;
+
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          TeleprompterAgent Controls
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refreshStatus}
-            disabled={isLoading}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </CardTitle>
+    <Card className={className}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">Teleprompter Agent</CardTitle>
+          {getAgentStatusBadge()}
+        </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
-        {/* Status Display */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Status:</span>
-            <Badge variant={status?.running ? "default" : "secondary"}>
-              {status?.running ? "Running" : "Stopped"}
-            </Badge>
-            {status?.connected && (
-              <Badge variant="outline">Connected</Badge>
-            )}
+        {/* Status Information */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Mic className="h-3 w-3" />
+              Speech Recognition
+            </div>
+            <div className="font-medium">
+              {agentStatus.transcribing ? 'Active' : 'Inactive'}
+            </div>
           </div>
-          
-          {status?.lastStarted && (
-            <div className="text-xs text-muted-foreground">
-              Last started: {formatTimestamp(status.lastStarted)}
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Users className="h-3 w-3" />
+              Room Participants
             </div>
-          )}
-          
-          {status?.lastStopped && (
-            <div className="text-xs text-muted-foreground">
-              Last stopped: {formatTimestamp(status.lastStopped)}
+            <div className="font-medium">
+              {agentStatus.participantCount || 0}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Control Buttons */}
-        <div className="flex gap-2">
+        {/* Agent Controls */}
+        <Separator />
+        
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleStartAgent}
+              disabled={!canStartAgent}
+              className="flex-1"
+              variant={agentStatus.active ? "outline" : "default"}
+            >
+              {isStarting ? (
+                <>
+                  <Activity className="h-4 w-4 mr-2 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Agent
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleStopAgent}
+              disabled={!canStopAgent}
+              variant="destructive"
+              className="flex-1"
+            >
+              {isStopping ? (
+                <>
+                  <Activity className="h-4 w-4 mr-2 animate-spin" />
+                  Stopping...
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4 mr-2" />
+                  Stop Agent
+                </>
+              )}
+            </Button>
+          </div>
+
           <Button
-            onClick={startAgent}
-            disabled={isLoading || status?.running}
-            className="flex-1"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            {isLoading ? "Starting..." : "Start Agent"}
-          </Button>
-          
-          <Button
-            onClick={stopAgent}
-            disabled={isLoading || !status?.running}
+            onClick={handleCheckStatus}
             variant="outline"
-            className="flex-1"
+            size="sm"
+            className="w-full"
+            disabled={statusFetcher.state === 'loading'}
           >
-            <Square className="h-4 w-4 mr-2" />
-            {isLoading ? "Stopping..." : "Stop Agent"}
+            {statusFetcher.state === 'loading' ? (
+              <>
+                <Activity className="h-3 w-3 mr-2 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              'Refresh Status'
+            )}
           </Button>
         </div>
 
         {/* Error Display */}
-        {error && (
+        {agentStatus.error && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{agentStatus.error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Agent Error Display */}
-        {status?.error && (
-          <Alert variant="destructive">
-            <AlertDescription>Agent Error: {status.error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Success Message */}
-        {status?.running && !error && (
+        {/* Connection Requirements */}
+        {!isRoomConnected && (
           <Alert>
+            <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Agent is running and ready to transcribe speech!
+              Connect to a LiveKit room first to enable agent controls.
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Last Activity */}
+        {agentStatus.lastActivity && (
+          <div className="text-xs text-muted-foreground">
+            Last activity: {new Date(agentStatus.lastActivity).toLocaleTimeString()}
+          </div>
+        )}
+
+        {/* Fetcher Results */}
+        {(startFetcher.data || stopFetcher.data || statusFetcher.data) && (
+          <div className="text-xs bg-muted p-2 rounded">
+            <details>
+              <summary className="cursor-pointer">Debug Response</summary>
+              <pre className="mt-2 text-xs overflow-auto">
+                {JSON.stringify(
+                  startFetcher.data || stopFetcher.data || statusFetcher.data, 
+                  null, 
+                  2
+                )}
+              </pre>
+            </details>
+          </div>
         )}
       </CardContent>
     </Card>
