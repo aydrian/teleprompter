@@ -9,6 +9,7 @@
 # Files
 .DS_Store
 .dev.vars
+.env
 worker-configuration.d.ts
 
 CLAUDE.md

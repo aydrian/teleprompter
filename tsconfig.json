@@ -5,7 +5,9 @@
     "paths": {
       "@/*": ["./app/*"]
     },
-    "types": ["node"]
+    "types": ["node"],
+    "jsx": "preserve",
+    "jsxImportSource": "react"
   },
   "include": [
     "app/**/*",
@@ -14,6 +16,7 @@
   ],
   "exclude": [
     "node_modules",
-    "build"
+    "build",
+    "app/lib/agents-sdk"
   ]
 }

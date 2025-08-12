@@ -1,0 +1,4 @@
+[submodule "app/lib/agents-sdk"]
+	path = app/lib/agents-sdk
+	url = https://github.com/livekit/agents-js.git
+	branch = dev-1.0

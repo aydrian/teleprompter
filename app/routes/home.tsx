@@ -1,5 +1,6 @@
 import type { Route } from "./+types/home";
 import { Welcome } from "../welcome/welcome";
+import { LiveKitTest } from "@/components/LiveKitTest";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -15,5 +16,12 @@ export async function loader(_: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome value={loaderData.message} />;
+  return (
+    <div className="space-y-8">
+      <Welcome value={loaderData.message} />
+      <div className="flex justify-center">
+        <LiveKitTest />
+      </div>
+    </div>
+  );
 }
