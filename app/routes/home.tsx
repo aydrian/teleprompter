@@ -5,7 +5,7 @@ import { env, waitUntil } from "cloudflare:workers";
 export function meta(_: Route.MetaArgs) {
   return [
     { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { name: "description", content: "Welcome to React Router!" }
   ];
 }
 

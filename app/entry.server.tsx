@@ -2,7 +2,7 @@ import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
 import type {
   EntryContext,
-  unstable_RouterContextProvider,
+  unstable_RouterContextProvider
 } from "react-router";
 import { ServerRouter } from "react-router";
 
@@ -13,9 +13,9 @@ export default async function handleRequest(
   entryContext: EntryContext,
   _routerContext: unstable_RouterContextProvider
 ) {
-  let userAgent = request.headers.get("user-agent");
+  const userAgent = request.headers.get("user-agent");
 
-  let stream = await renderToReadableStream(
+  const stream = await renderToReadableStream(
     <ServerRouter context={entryContext} url={request.url} />,
     {
       signal: request.signal,
@@ -23,7 +23,7 @@ export default async function handleRequest(
         console.error(error);
         // biome-ignore lint/style/noParameterAssign: It's ok
         status = 500;
-      },
+      }
     }
   );
 
