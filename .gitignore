@@ -10,3 +10,6 @@
 .DS_Store
 .dev.vars
 worker-configuration.d.ts
+
+CLAUDE.md
+/.claude

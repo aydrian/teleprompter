@@ -1,6 +1,19 @@
 {
   "extends": "@total-typescript/tsconfig/bundler/dom",
-  "files": [],
-  "references": [{ "path": "./tsconfig.cloudflare.json" }],
-  "compilerOptions": {}
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./app/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "app/**/*",
+    "vite.config.ts",
+    "react-router.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
 }

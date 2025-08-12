@@ -8,6 +8,7 @@ declare module "react-router" {
 }
 
 export default {
+  ssr: true, // Enable server-side rendering (Framework Mode)
   future: {
     unstable_middleware: true,
     unstable_optimizeDeps: true,
