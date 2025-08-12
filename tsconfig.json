@@ -16,7 +16,6 @@
   ],
   "exclude": [
     "node_modules",
-    "build",
-    "app/lib/agents-sdk"
+    "build"
   ]
 }

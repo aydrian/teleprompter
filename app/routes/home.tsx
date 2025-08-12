@@ -1,6 +1,7 @@
 import type { Route } from "./+types/home";
 import { Welcome } from "../welcome/welcome";
 import { LiveKitTest } from "@/components/LiveKitTest";
+import { AgentControls } from "@/components/AgentControls";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -19,8 +20,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-8">
       <Welcome value={loaderData.message} />
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-8">
         <LiveKitTest />
+        <AgentControls />
       </div>
     </div>
   );
