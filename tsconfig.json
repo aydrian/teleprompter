@@ -1,0 +1,6 @@
+{
+  "extends": "@total-typescript/tsconfig/bundler/dom",
+  "files": [],
+  "references": [{ "path": "./tsconfig.cloudflare.json" }],
+  "compilerOptions": {}
+}
