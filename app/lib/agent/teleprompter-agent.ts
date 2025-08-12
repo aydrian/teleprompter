@@ -11,12 +11,8 @@ import {
 import * as deepgram from '@livekit/agents-monorepo/plugins/deepgram/src';
 import { DataPacket_Kind, type ParticipantIdentity } from '@livekit/rtc-node';
 
-export interface TranscriptData {
-  text: string;
-  isFinal: boolean;
-  timestamp: number;
-  participantIdentity: string;
-}
+import type { TranscriptData } from "@/lib/types/transcript";
+import { broadcastTranscript, broadcastStatus } from "@/routes/api/transcripts.sse";
 
 /**
  * TeleprompterAgent - Captures speech and sends transcripts to frontend
@@ -26,9 +22,11 @@ export class TeleprompterAgent {
   private stt: deepgram.STT;
   private ctx: JobContext;
   private isActive: boolean = false;
+  private roomName: string;
 
-  constructor(ctx: JobContext) {
+  constructor(ctx: JobContext, roomName?: string) {
     this.ctx = ctx;
+    this.roomName = roomName || ctx.room.name || 'default';
     this.stt = new deepgram.STT({
       apiKey: process.env.DEEPGRAM_API_KEY,
       language: 'en-US',
@@ -66,6 +64,9 @@ export class TeleprompterAgent {
     // Start STT processing
     await this.stt.start();
     
+    // Broadcast status to WebSocket clients
+    broadcastStatus(this.roomName, 'connected', 'Teleprompter agent started');
+    
     log.info('TeleprompterAgent started successfully');
   }
 
@@ -82,6 +83,9 @@ export class TeleprompterAgent {
     log.info('Stopping TeleprompterAgent');
 
     await this.stt.stop();
+    
+    // Broadcast status to WebSocket clients
+    broadcastStatus(this.roomName, 'disconnected', 'Teleprompter agent stopped');
     
     log.info('TeleprompterAgent stopped');
   }
@@ -116,10 +120,13 @@ export class TeleprompterAgent {
   }
 
   /**
-   * Send transcript to all participants via data track
+   * Send transcript to all participants via data track and WebSocket
    */
   private async sendTranscript(transcript: TranscriptData): Promise<void> {
     try {
+      // Broadcast via WebSocket to all connected clients
+      broadcastTranscript(this.roomName, transcript);
+
       const data = JSON.stringify({
         type: 'transcript',
         data: transcript,
@@ -138,9 +145,12 @@ export class TeleprompterAgent {
         text: transcript.text,
         isFinal: transcript.isFinal,
         participantIdentity: transcript.participantIdentity,
+        roomName: this.roomName,
       });
     } catch (error) {
       log.error('Failed to send transcript:', error);
+      // Broadcast error status
+      broadcastStatus(this.roomName, 'error', `Failed to send transcript: ${error}`);
     }
   }
 

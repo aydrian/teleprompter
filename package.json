@@ -17,7 +17,9 @@
   "dependencies": {
     "@livekit/agents-monorepo": "https://github.com/livekit/agents-js.git#dev-1.0",
     "@livekit/rtc-node": "^0.13.18",
+    "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-scroll-area": "^1.2.9",
     "@radix-ui/react-slider": "^1.3.5",
@@ -26,6 +28,7 @@
     "@react-router/serve": "^7.8.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "heap-js": "^2.6.0",
     "isbot": "^5.1.29",
     "livekit-client": "^2.15.4",
     "livekit-server-sdk": "^2.13.2",
@@ -36,7 +39,9 @@
     "react-resizable-panels": "^3.0.4",
     "react-router": "^7.8.0",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "uuid": "^11.1.0",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
@@ -47,6 +52,7 @@
     "@types/node": "^24.2.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",

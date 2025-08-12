@@ -16,4 +16,23 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./app"),
     },
   },
+  optimizeDeps: {
+    exclude: [
+      '@livekit/agents-monorepo',
+      '@livekit/rtc-node',
+    ],
+  },
+  ssr: {
+    external: [
+      '@livekit/agents-monorepo',
+      '@livekit/rtc-node',
+      '@std/async',
+      'zod-to-json-schema',
+      'heap-js',
+      'uuid',
+    ],
+    noExternal: [
+      '@livekit/rtc-node-*',
+    ],
+  },
 });
