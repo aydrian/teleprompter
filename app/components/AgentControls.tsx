@@ -39,7 +39,7 @@ export function AgentControls({
   isRoomConnected,
   className 
 }: AgentControlsProps) {
-  const [agentStatus, setAgentStatus] = useState<AgentStatus>({
+  const [agentStatus] = useState<AgentStatus>({
     active: false,
     connected: false,
     transcribing: false,

@@ -63,11 +63,12 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
       switch (message.type) {
         case 'transcript': {
           if (message.data) {
-            updateState({
+            setState(prev => ({
+              ...prev,
               lastTranscript: message.data,
-              transcripts: (prev: TranscriptData[]) => [...prev, message.data],
+              transcripts: [...prev.transcripts, message.data],
               error: null,
-            });
+            }));
           }
           break;
         }
@@ -99,36 +100,8 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
     });
   }, [updateState]);
 
-  const handleError = useCallback((event: Event) => {
-    console.error('SSE error:', event);
-    
-    // Check if the connection is closed
-    if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
-      updateState({
-        connectionState: 'disconnected',
-        isConnected: false,
-      });
-
-      // Auto-reconnect if enabled
-      if (autoReconnect && state.reconnectAttempts < maxReconnectAttempts) {
-        updateState({
-          connectionState: 'reconnecting',
-          reconnectAttempts: (prev: number) => prev + 1,
-        });
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, reconnectInterval);
-      } else {
-        updateState({
-          connectionState: 'error',
-          error: 'SSE connection error',
-        });
-      }
-    }
-  }, [autoReconnect, maxReconnectAttempts, reconnectInterval, state.reconnectAttempts, updateState]);
-
-  const connect = useCallback(() => {
+  // Connection logic separated to avoid circular dependencies
+  const createConnection = useCallback(() => {
     if (eventSourceRef.current?.readyState === EventSource.OPEN || isConnectingRef.current) {
       return;
     }
@@ -150,7 +123,6 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
       
       eventSource.addEventListener('open', handleOpen);
       eventSource.addEventListener('message', handleMessage);
-      eventSource.addEventListener('error', handleError);
 
       eventSourceRef.current = eventSource;
       isConnectingRef.current = false;
@@ -162,7 +134,49 @@ export function useTranscriptSSE(options: UseTranscriptSSEOptions) {
         error: 'Failed to create SSE connection',
       });
     }
-  }, [roomName, participantName, handleOpen, handleMessage, handleError, clearReconnectTimeout, updateState]);
+  }, [roomName, participantName, handleOpen, handleMessage, clearReconnectTimeout, updateState]);
+
+  const handleError = useCallback((event: Event) => {
+    console.error('SSE error:', event);
+    
+    // Check if the connection is closed
+    if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
+      updateState({
+        connectionState: 'disconnected',
+        isConnected: false,
+      });
+
+      // Auto-reconnect if enabled
+      if (autoReconnect && state.reconnectAttempts < maxReconnectAttempts) {
+        setState(prev => ({
+          ...prev,
+          connectionState: 'reconnecting',
+          reconnectAttempts: prev.reconnectAttempts + 1,
+        }));
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          createConnection();
+          // Add error handler after reconnection
+          if (eventSourceRef.current) {
+            eventSourceRef.current.addEventListener('error', handleError);
+          }
+        }, reconnectInterval);
+      } else {
+        updateState({
+          connectionState: 'error',
+          error: 'SSE connection error',
+        });
+      }
+    }
+  }, [autoReconnect, maxReconnectAttempts, reconnectInterval, state.reconnectAttempts, updateState, createConnection]);
+
+  const connect = useCallback(() => {
+    createConnection();
+    // Add error handler after connection is created
+    if (eventSourceRef.current) {
+      eventSourceRef.current.addEventListener('error', handleError);
+    }
+  }, [createConnection, handleError]);
 
   const disconnect = useCallback(() => {
     clearReconnectTimeout();

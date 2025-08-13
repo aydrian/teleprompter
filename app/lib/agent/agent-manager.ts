@@ -1,5 +1,5 @@
 // AgentManager - Manages the lifecycle of the TeleprompterAgent
-import { Worker, WorkerOptions, log } from '@livekit/agents-monorepo/agents/src';
+import { Worker, WorkerOptions, log, initializeLogger } from '@livekit/agents';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -41,7 +41,9 @@ export class AgentManager {
     }
 
     try {
-      log.info('Starting TeleprompterAgent worker');
+      // Initialize logger
+      initializeLogger({ pretty: true, level: 'info' });
+      log().info('Starting TeleprompterAgent worker');
 
       // Get the path to the teleprompter agent
       const agentPath = path.resolve(
@@ -53,7 +55,7 @@ export class AgentManager {
       const workerOptions = new WorkerOptions({
         agent: agentPath,
         // Use environment variables for LiveKit connection
-        wsUrl: process.env.LIVEKIT_URL || 'ws://localhost:7880',
+        wsURL: process.env.LIVEKIT_URL || 'ws://localhost:7880',
         apiKey: process.env.LIVEKIT_API_KEY,
         apiSecret: process.env.LIVEKIT_API_SECRET,
       });
@@ -61,34 +63,27 @@ export class AgentManager {
       // Create and start the worker
       this.worker = new Worker(workerOptions);
       
-      // Set up event handlers
-      this.worker.on('worker_registered', () => {
-        log.info('TeleprompterAgent worker registered');
+      // Set up event handlers using EventEmitter
+      this.worker.event.on('worker_registered', () => {
+        log().info('TeleprompterAgent worker registered');
         this.status.running = true;
         this.status.connected = true;
         this.status.lastStarted = Date.now();
         this.status.error = undefined;
       });
 
-      this.worker.on('job_request', (job) => {
-        log.info('TeleprompterAgent received job request:', job.id);
-      });
-
-      this.worker.on('error', (error) => {
-        log.error('TeleprompterAgent worker error:', error);
-        this.status.error = error.message;
-        this.status.running = false;
-        this.status.connected = false;
+      this.worker.event.on('worker_msg', (msg: unknown) => {
+        log().info('TeleprompterAgent received message:', msg);
       });
 
       // Start the worker
-      await this.worker.start();
+      await this.worker.run();
       
-      log.info('TeleprompterAgent worker started successfully');
+      log().info('TeleprompterAgent worker started successfully');
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      log.error('Failed to start TeleprompterAgent:', message);
+      log().error('Failed to start TeleprompterAgent:', message);
       this.status.error = message;
       this.status.running = false;
       this.status.connected = false;
@@ -106,9 +101,11 @@ export class AgentManager {
     }
 
     try {
-      log.info('Stopping TeleprompterAgent worker');
+      log().info('Stopping TeleprompterAgent worker');
       
-      await this.worker.stop();
+      // Drain the worker gracefully
+      await this.worker.drain();
+      await this.worker.close();
       this.worker = null;
       
       this.status.running = false;
@@ -116,11 +113,11 @@ export class AgentManager {
       this.status.lastStopped = Date.now();
       this.status.error = undefined;
       
-      log.info('TeleprompterAgent worker stopped successfully');
+      log().info('TeleprompterAgent worker stopped successfully');
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      log.error('Failed to stop TeleprompterAgent:', message);
+      log().error('Failed to stop TeleprompterAgent:', message);
       this.status.error = message;
       throw error;
     }

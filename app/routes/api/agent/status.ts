@@ -1,7 +1,6 @@
 import { agentManager } from "@/lib/agent/agent-manager";
-import type { Route } from "./+types/status";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader() {
   try {
     const status = agentManager.getStatus();
     

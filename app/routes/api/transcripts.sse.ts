@@ -70,7 +70,7 @@ function cleanup(connectionId: string, roomName: string) {
   if (connection) {
     try {
       connection.controller.close();
-    } catch (error) {
+    } catch {
       // Controller might already be closed
     }
     connection.abortController.abort();

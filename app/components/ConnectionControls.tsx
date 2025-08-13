@@ -135,7 +135,7 @@ export function ConnectionControls({
               className="w-full"
             />
             <p className="text-xs text-muted-foreground">
-              How you'll appear to other participants in the room
+              How you&apos;ll appear to other participants in the room
             </p>
           </div>
 
