@@ -36,12 +36,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const jwt = await token.toJwt();
 
-    return Response.json({
+    return {
       token: jwt,
       wsUrl,
       room: roomName,
       identity: participantName,
-    });
+    };
   } catch (error) {
     console.error("Error generating token:", error);
     throw new Response("Failed to generate token", { status: 500 });

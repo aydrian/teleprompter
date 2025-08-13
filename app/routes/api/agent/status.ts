@@ -4,15 +4,15 @@ export async function loader() {
   try {
     const status = agentManager.getStatus();
     
-    return Response.json({
+    return {
       success: true,
       status,
-    });
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to get agent status";
-    return Response.json(
-      { success: false, message },
-      { status: 500 }
+    throw new Response(
+      JSON.stringify({ success: false, message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

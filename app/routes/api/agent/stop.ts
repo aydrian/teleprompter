@@ -8,24 +8,24 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     if (!agentManager.isRunning()) {
-      return Response.json(
-        { success: false, message: "Agent is not running" },
-        { status: 400 }
+      throw new Response(
+        JSON.stringify({ success: false, message: "Agent is not running" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     await agentManager.stopAgent();
     
-    return Response.json({
+    return {
       success: true,
       message: "TeleprompterAgent stopped successfully",
       status: agentManager.getStatus(),
-    });
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to stop agent";
-    return Response.json(
-      { success: false, message },
-      { status: 500 }
+    throw new Response(
+      JSON.stringify({ success: false, message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

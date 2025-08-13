@@ -8,24 +8,24 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     if (agentManager.isRunning()) {
-      return Response.json(
-        { success: false, message: "Agent is already running" },
-        { status: 400 }
+      throw new Response(
+        JSON.stringify({ success: false, message: "Agent is already running" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     await agentManager.startAgent();
     
-    return Response.json({
+    return {
       success: true,
       message: "TeleprompterAgent started successfully",
       status: agentManager.getStatus(),
-    });
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to start agent";
-    return Response.json(
-      { success: false, message },
-      { status: 500 }
+    throw new Response(
+      JSON.stringify({ success: false, message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
