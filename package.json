@@ -17,6 +17,7 @@
   "dependencies": {
     "@livekit/agents": "file:../agents-js/agents",
     "@livekit/agents-plugin-deepgram": "file:../agents-js/plugins/deepgram",
+    "@livekit/agents-plugin-openai": "file:../agents-js/plugins/openai",
     "@livekit/rtc-node": "^0.13.18",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-dialog": "^1.1.14",

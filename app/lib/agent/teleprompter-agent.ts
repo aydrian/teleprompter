@@ -5,34 +5,52 @@ import {
   defineAgent,
   log,
   initializeLogger,
-  type stt,
 } from '@livekit/agents';
-import * as deepgram from '@livekit/agents-plugin-deepgram';
+import * as openai from '@livekit/agents-plugin-openai';
 // LiveKit RTC imports handled by agents framework
 
 import type { TranscriptData } from "@/lib/types/transcript";
 import { broadcastTranscript, broadcastStatus } from "@/routes/api/transcripts.sse";
+
+// Type definitions for audio processing
+interface AudioFrame {
+  data?: Float32Array;
+  [key: string]: unknown;
+}
+
+interface Participant {
+  identity?: string;
+}
+
+interface AudioTrack {
+  on?: (event: string, callback: (frame: AudioFrame) => void) => void;
+  [key: string]: unknown;
+}
+
+interface SpeechEvent {
+  alternatives?: Array<{ text: string }>;
+  [key: string]: unknown;
+}
 
 /**
  * TeleprompterAgent - Captures speech and sends transcripts to frontend
  * Based on the Python cartesia-ink.py example
  */
 export class TeleprompterAgent {
-  private stt: deepgram.STT;
+  private stt: openai.STT;
   private ctx: JobContext;
   private isActive: boolean = false;
   private roomName: string;
+  private audioBuffers: Map<string, Float32Array[]> = new Map();
+  private processingIntervals: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(ctx: JobContext, roomName?: string) {
     this.ctx = ctx;
     this.roomName = roomName || ctx.room.name || 'default';
-    this.stt = new deepgram.STT({
-      apiKey: process.env.DEEPGRAM_API_KEY,
-      language: 'en-US',
-      interimResults: true,
-      punctuate: true,
-      smartFormat: true,
-      model: 'nova-2-general',
+    this.stt = new openai.STT({
+      apiKey: process.env.OPENAI_API_KEY,
+      language: 'en',
+      model: 'whisper-1',
     });
   }
 
@@ -46,28 +64,29 @@ export class TeleprompterAgent {
     }
 
     this.isActive = true;
-    log().info('Starting TeleprompterAgent');
-
-    // Set up STT event handlers - API may need adjustment for current version
-    // this.stt.on('speechEvent', this.onSpeechEvent.bind(this));
-
+    log().info('Starting TeleprompterAgent with OpenAI STT');
+    
     // Subscribe to all audio tracks in the room
+    this.ctx.room.on('trackSubscribed', (track, _publication) => {
+      if (track.kind?.toString() === 'audio') {
+        log().info('Audio track subscribed - setting up OpenAI STT processing');
+        this.processAudioTrack(track, { identity: 'remote-participant' });
+      }
+    });
+
+    // Subscribe to existing audio tracks
     for (const participant of this.ctx.room.remoteParticipants.values()) {
-      for (const track of participant.trackPublications.values()) {
-        if (track.track && track.track.kind?.toString() === 'audio') {
-          // Enable audio track subscription
-          track.setSubscribed(true);
+      for (const trackPub of participant.trackPublications.values()) {
+        if (trackPub.track && trackPub.track.kind?.toString() === 'audio') {
+          trackPub.setSubscribed(true);
         }
       }
     }
 
-    // Start STT processing
-    // Note: STT may be started automatically in newer versions
-    
     // Broadcast status to WebSocket clients
-    broadcastStatus(this.roomName, 'connected', 'Teleprompter agent started');
+    broadcastStatus(this.roomName, 'connected', 'Teleprompter agent started with OpenAI');
     
-    log().info('TeleprompterAgent started successfully');
+    log().info('TeleprompterAgent started successfully with OpenAI STT');
   }
 
   /**
@@ -82,7 +101,15 @@ export class TeleprompterAgent {
     this.isActive = false;
     log().info('Stopping TeleprompterAgent');
 
-    // Note: STT stop may not be needed in newer versions
+    // Clear all processing intervals
+    for (const [participantId, interval] of this.processingIntervals) {
+      clearInterval(interval);
+      log().info(`Cleared processing interval for ${participantId}`);
+    }
+    this.processingIntervals.clear();
+
+    // Clear all audio buffers
+    this.audioBuffers.clear();
     
     // Broadcast status to WebSocket clients
     broadcastStatus(this.roomName, 'disconnected', 'Teleprompter agent stopped');
@@ -101,21 +128,146 @@ export class TeleprompterAgent {
   }
 
   /**
-   * Handle speech events from STT
+   * Process audio track for STT
    */
-  private async onSpeechEvent(event: stt.SpeechEvent): Promise<void> {
+  private async processAudioTrack(track: unknown, participant: Participant): Promise<void> {
     if (!this.isActive) return;
 
-    const transcript: TranscriptData = {
-      text: event.alternatives?.[0]?.text || '',
-      isFinal: event.type.toString() === 'FINAL',
+    const participantId = participant?.identity || 'unknown';
+    
+    try {
+      log().info(`Setting up OpenAI STT processing for ${participantId}`);
+      
+      // Initialize audio buffer for this participant
+      this.audioBuffers.set(participantId, []);
+      
+      // Set up audio frame listener
+      const audioTrack = track as AudioTrack;
+      if (audioTrack.on) {
+        audioTrack.on('data', (audioFrame: AudioFrame) => {
+          if (this.isActive) {
+            this.bufferAudioFrame(participantId, audioFrame);
+          }
+        });
+      }
+      
+      // Start periodic recognition processing (every 2 seconds)
+      const interval = setInterval(async () => {
+        if (this.isActive) {
+          await this.processAudioBuffer(participantId);
+        } else {
+          clearInterval(interval);
+          this.processingIntervals.delete(participantId);
+        }
+      }, 2000);
+      
+      this.processingIntervals.set(participantId, interval);
+      
+      log().info(`OpenAI STT processing started for ${participantId}`);
+    } catch (error) {
+      log().error('Error setting up audio track processing:', error);
+    }
+  }
+
+  /**
+   * Buffer audio frame from participant
+   */
+  private bufferAudioFrame(participantId: string, audioFrame: AudioFrame): void {
+    try {
+      // Convert audio frame to Float32Array if needed
+      let audioData: Float32Array;
+      if (audioFrame instanceof Float32Array) {
+        audioData = audioFrame;
+      } else if (audioFrame.data instanceof Float32Array) {
+        audioData = audioFrame.data;
+      } else {
+        // Skip if we can't process this audio format
+        return;
+      }
+      
+      const buffer = this.audioBuffers.get(participantId) || [];
+      buffer.push(audioData);
+      this.audioBuffers.set(participantId, buffer);
+      
+      // Limit buffer size to prevent memory issues (keep last 10 seconds worth)
+      const maxChunks = 500; // Approximate 10 seconds at typical sample rates
+      if (buffer.length > maxChunks) {
+        buffer.splice(0, buffer.length - maxChunks);
+      }
+    } catch (error) {
+      log().error('Error buffering audio frame:', error);
+    }
+  }
+
+  /**
+   * Process accumulated audio buffer using OpenAI STT
+   */
+  private async processAudioBuffer(participantId: string): Promise<void> {
+    const buffer = this.audioBuffers.get(participantId);
+    if (!buffer || buffer.length === 0) {
+      return;
+    }
+
+    try {
+      // Concatenate all audio chunks
+      const totalLength = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
+      const combinedAudio = new Float32Array(totalLength);
+      
+      let offset = 0;
+      for (const chunk of buffer) {
+        combinedAudio.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      // Convert to the format expected by OpenAI STT (array of AudioFrames)
+      // For now, create a simple audio frame representation
+      const audioFrames = [{
+        data: combinedAudio,
+        sampleRate: 16000,
+        channels: 1,
+        samplesPerChannel: combinedAudio.length
+      }];
+
+      // Use OpenAI STT _recognize method
+      // Note: Using type assertion for compatibility with our audio frame format
+      const speechEvent = await (this.stt._recognize as unknown as (buffer: unknown) => Promise<SpeechEvent>)(audioFrames);
+      
+      if (speechEvent && speechEvent.alternatives && speechEvent.alternatives.length > 0) {
+        const transcript = speechEvent.alternatives[0].text;
+        if (transcript && transcript.trim().length > 0) {
+          await this.handleTranscriptResult(transcript, true, { identity: participantId });
+        }
+      }
+
+      // Clear processed buffer
+      this.audioBuffers.set(participantId, []);
+      
+    } catch (error) {
+      log().error('Error processing audio buffer:', error);
+      // Clear buffer on error to prevent accumulation
+      this.audioBuffers.set(participantId, []);
+    }
+  }
+
+  /**
+   * Handle transcript results from OpenAI STT
+   */
+  private async handleTranscriptResult(transcript: string | { text?: string }, isFinal: boolean, participant?: Participant): Promise<void> {
+    if (!this.isActive) return;
+
+    const text = typeof transcript === 'string' ? transcript : transcript.text || '';
+    const participantIdentity = participant?.identity || this.ctx.room.localParticipant?.identity || 'unknown';
+    
+    const transcriptData: TranscriptData = {
+      text,
+      isFinal,
       timestamp: Date.now(),
-      participantIdentity: this.ctx.room.localParticipant?.identity || 'unknown',
+      participantIdentity,
     };
 
     // Only process non-empty transcripts
-    if (transcript.text.trim().length > 0) {
-      await this.sendTranscript(transcript);
+    if (transcriptData.text.trim().length > 0) {
+      await this.sendTranscript(transcriptData);
     }
   }
 
