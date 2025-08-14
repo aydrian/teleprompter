@@ -17,12 +17,14 @@ A real-time, voice-synchronized teleprompter application built with React, LiveK
 The application consists of two main components:
 
 ### Web Application
+
 - **Framework**: React Router v7 with server-side rendering
 - **UI**: React with Tailwind CSS and Radix UI components
 - **WebRTC**: LiveKit client for real-time communication
 - **State Management**: React hooks and context providers
 
 ### Agent Service
+
 - **Framework**: LiveKit Agents SDK
 - **Speech-to-Text**: Deepgram STT with Silero VAD
 - **Communication**: RPC over LiveKit data channels
@@ -39,22 +41,26 @@ The application consists of two main components:
 ## 🚀 Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/aydrian/teleprompter.git
 cd teleprompter
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env
 ```
 
 Edit `.env` with your configuration:
+
 ```env
 # LiveKit Cloud Configuration
 LIVEKIT_URL=wss://your-project.livekit.cloud
@@ -83,6 +89,7 @@ The application will be available at `http://localhost:3000`
 ### Starting the Agent
 
 In a separate terminal:
+
 ```bash
 pnpm run agent:dev
 ```
@@ -95,11 +102,11 @@ The agent will connect to LiveKit Cloud and wait for job assignments.
 
 2. **Connect to Room**: Click "Start Conversation" to connect to the LiveKit room
 
-3. **Edit Script**: 
+3. **Edit Script**:
    - Click the Edit button to modify the teleprompter script
    - Save your changes to update the display
 
-4. **Start Speaking**: 
+4. **Start Speaking**:
    - The teleprompter will automatically highlight and advance sentences as you speak them
    - The system matches your speech to the script with intelligent word matching
 
@@ -112,6 +119,7 @@ The agent will connect to LiveKit Cloud and wait for job assignments.
 ### LiveKit Settings
 
 Configure LiveKit connection in `app/routes/api/livekit/config.ts`:
+
 - Room settings
 - Participant permissions
 - Audio/video configuration
@@ -119,6 +127,7 @@ Configure LiveKit connection in `app/routes/api/livekit/config.ts`:
 ### Agent Settings
 
 Modify agent behavior in `agents/teleprompter/agent.ts`:
+
 - STT provider (Deepgram/OpenAI)
 - VAD sensitivity
 - Transcript processing logic
@@ -126,6 +135,7 @@ Modify agent behavior in `agents/teleprompter/agent.ts`:
 ### UI Customization
 
 Customize the teleprompter interface in `app/components/Teleprompter.tsx`:
+
 - Font sizes and styles
 - Highlight colors
 - Animation speeds
@@ -163,11 +173,13 @@ The web application can be deployed to any Node.js hosting platform:
 #### Option 1: Traditional Node.js Server
 
 1. Build the application:
+
 ```bash
 pnpm run build
 ```
 
 2. Start the production server:
+
 ```bash
 pnpm run start
 ```
@@ -188,6 +200,7 @@ CMD ["npm", "run", "start"]
 #### Option 3: Platform-as-a-Service (PaaS)
 
 Deploy to platforms like:
+
 - Vercel
 - Netlify
 - Railway
@@ -198,12 +211,14 @@ Deploy to platforms like:
 ### Deploy the Agent
 
 The agent needs to be deployed as a separate service. Options include:
+
 - Docker container
 - Kubernetes deployment
 - Cloud Run or similar serverless platforms
 - VPS with process manager (PM2, systemd)
 
 Example Dockerfile for agent:
+
 ```dockerfile
 FROM node:20-slim
 WORKDIR /app
@@ -216,17 +231,20 @@ CMD ["node", "agents/teleprompter/agent.js", "start"]
 ## 🔧 Troubleshooting
 
 ### Agent Not Receiving Jobs
+
 - Ensure LiveKit Cloud project is properly configured
 - Check agent is registered: Look for "registered worker" in agent logs
 - Verify environment variables are set correctly with LiveKit Cloud credentials
 - Check LiveKit Cloud dashboard for active sessions and agent status
 
 ### No Speech Recognition
+
 - Check microphone permissions in browser
 - Verify Deepgram API key is valid
 - Check agent logs for STT errors
 
 ### Teleprompter Not Advancing
+
 - Ensure you're speaking clearly into the microphone
 - Check browser console for RPC errors
 - Verify agent is processing transcripts (check logs)
@@ -251,24 +269,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-MIT License
-
-Copyright (c) 2025 ItsAydrian, LLC.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

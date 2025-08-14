@@ -1,6 +1,13 @@
 {
   "name": "teleprompter-app",
   "private": true,
+  "description": "A real-time, voice-synchronized teleprompter application built with React, LiveKit, and speech-to-text technology.",
+  "author": "Aydrian Howard <howdy@itsaydrian.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aydrian/teleprompter.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "react-router dev",
