@@ -1,17 +1,9 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-  index("routes/home.tsx"),
-  
-  // Main Application Routes
-  route("teleprompter", "routes/teleprompter.tsx"),
+  index("routes/teleprompter.tsx"),
   
   // API Routes
   route("api/livekit/token", "routes/api/livekit/token.ts"),
-  route("api/transcripts.sse", "routes/api/transcripts.sse.ts"),
-  
-  // Agent API Routes
-  route("api/agent/start", "routes/api/agent/start.ts"),
-  route("api/agent/stop", "routes/api/agent/stop.ts"),
-  route("api/agent/status", "routes/api/agent/status.ts"),
+  route("api/livekit/config", "routes/api/livekit/config.ts"),
 ] satisfies RouteConfig;
