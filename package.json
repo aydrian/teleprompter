@@ -29,7 +29,7 @@
     "@livekit/agents-plugin-silero": "file:../agents-js/plugins/silero",
     "@livekit/components-react": "^2.9.14",
     "@livekit/components-styles": "^1.1.6",
-    "@livekit/krisp-noise-filter": "^0.3.4",
+    "@livekit/krisp-noise-filter": "^0.4.0",
     "@livekit/rtc-node": "^0.13.18",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-dialog": "^1.1.14",
