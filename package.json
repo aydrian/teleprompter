@@ -48,7 +48,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^18.0.0",
-    "framer-motion": "^13.0.0",
+    "framer-motion": "^14.0.0",
     "heap-js": "^2.6.0",
     "isbot": "^5.1.29",
     "livekit-client": "^2.15.4",
